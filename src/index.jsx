@@ -1,12 +1,16 @@
 /* @flow */
-import React, { Component, PropTypes } from 'react';
-import fetch from 'isomorphic-fetch';
+import React, {Component, PropTypes} from 'react';
 import autobind from 'autobind-decorator';
 import classnames from 'classnames';
 import Dropzone from 'react-dropzone';
 import Button from 'react-progress-button';
 import 'babel-core/register';
 import 'babel-polyfill';
+
+import axios from 'axios';
+
+axios.defaults.xsrfHeaderName = "X-CSRFToken";
+axios.defaults.xsrfCookieName = "csrftoken";
 
 export default class ImagesUploader extends Component {
 	/* eslint-disable react/sort-comp */
@@ -81,7 +85,7 @@ export default class ImagesUploader extends Component {
 
 	static defaultProps = {
 		dataName: 'imageFiles',
-		headers:{},
+		headers: {},
 		classNames: {},
 		styles: {},
 		multiple: true,
@@ -111,6 +115,7 @@ export default class ImagesUploader extends Component {
 		};
 		this.input = null;
 	}
+
 	/* eslint-enable react/sort-comp */
 
 	componentWillMount() {
@@ -173,7 +178,7 @@ export default class ImagesUploader extends Component {
 				<div
 					className={classNames.emptyPreview || `${classNamespace}emptyPreview`}
 					style={styles.emptyPreview}
-					/>
+				/>
 			);
 		}
 		let previews = [];
@@ -220,7 +225,8 @@ export default class ImagesUploader extends Component {
 									this.deleteImage(key);
 								}}>
 								{deleteElement
-								|| (<svg xmlns="http://www.w3.org/2000/svg" width="7.969" height="8" viewBox="0 0 7.969 8">
+								|| (<svg xmlns="http://www.w3.org/2000/svg" width="7.969" height="8"
+										 viewBox="0 0 7.969 8">
 									<path
 										id="X_Icon"
 										data-name="X Icon"
@@ -232,7 +238,7 @@ export default class ImagesUploader extends Component {
 										d="M562.036,606l2.849-2.863a0.247,0.247,0,0,0,0-.352l-0.7-.706a0.246,0.246,0,0,0-.352,0l-2.849,2.862-2.849-2.862a0.247,0.247,0,0,0-.352,0l-0.7.706a0.249,0.249,0,0,0,0,.352L559.927,606l-2.849,2.862a0.25,0.25,0,0,0,0,.353l0.7,0.706a0.249,0.249,0,0,0,.352,0l2.849-2.862,2.849,2.862a0.249,0.249,0,0,0,.352,0l0.7-.706a0.25,0.25,0,0,0,0-.353Z"
 										/* eslint-enable max-len */
 										transform="translate(-557 -602)"
-										/>
+									/>
 								</svg>)}
 							</div> : <div
 								className={classNames.notification || `${classNamespace}notification`}
@@ -250,7 +256,7 @@ export default class ImagesUploader extends Component {
 								}}>
 								<span>
 									{this.props.notification
-										|| this.buildPlus(disabled, notificationColor, disabledColor, plusElement)}
+									|| this.buildPlus(disabled, notificationColor, disabledColor, plusElement)}
 								</span>
 							</div>}
 						</div>
@@ -284,7 +290,7 @@ export default class ImagesUploader extends Component {
 							className={classNames.imgPreview || `${classNamespace}imgPreview`}
 							key={length + key}
 							style={imgPreviewStyle}
-							/>
+						/>
 					);
 				}
 				return null;
@@ -303,35 +309,48 @@ export default class ImagesUploader extends Component {
 					imageFormData.append(this.props.dataName, files[i], files[i].name);
 				}
 
-				let response = await fetch(url, {
+				axios.post(url, {
 					method: 'POST',
 					credentials: 'include',
 					body: imageFormData,
 					headers: this.props.headers
-				});
+				}).then(function (response) {
 
-				if (response && response.status && response.status === 200) {
-					response = await response.json();
-					const multiple = this.props.multiple;
-					if (response instanceof Array || typeof response === 'string') {
-						let imagePreviewUrls = [];
-						if (multiple === false) {
-							imagePreviewUrls = response instanceof Array ? response : [response];
+					if (response && response.status && response.status === 200) {
+						const multiple = this.props.multiple;
+						if (response instanceof Array || typeof response === 'string') {
+							let imagePreviewUrls = [];
+							if (multiple === false) {
+								imagePreviewUrls = response instanceof Array ? response : [response];
+							} else {
+								imagePreviewUrls = this.state.imagePreviewUrls.concat(response);
+							}
+							this.setState({
+								imagePreviewUrls,
+								optimisticPreviews: [],
+								loadState: 'success',
+							});
+							if (onLoadEnd && typeof onLoadEnd === 'function') {
+								onLoadEnd(false, response);
+							}
 						} else {
-							imagePreviewUrls = this.state.imagePreviewUrls.concat(response);
-						}
-						this.setState({
-							imagePreviewUrls,
-							optimisticPreviews: [],
-							loadState: 'success',
-						});
-						if (onLoadEnd && typeof onLoadEnd === 'function') {
-							onLoadEnd(false, response);
+							const err = {
+								message: 'invalid response type',
+								response,
+								fileName: 'ImagesUploader',
+							};
+							this.setState({
+								loadState: 'error',
+								optimisticPreviews: [],
+							});
+							if (onLoadEnd && typeof onLoadEnd === 'function') {
+								onLoadEnd(err);
+							}
 						}
 					} else {
 						const err = {
-							message: 'invalid response type',
-							response,
+							message: 'server error',
+							status: response ? response.status : false,
 							fileName: 'ImagesUploader',
 						};
 						this.setState({
@@ -342,20 +361,8 @@ export default class ImagesUploader extends Component {
 							onLoadEnd(err);
 						}
 					}
-				} else {
-					const err = {
-						message: 'server error',
-						status: response ? response.status : false,
-						fileName: 'ImagesUploader',
-					};
-					this.setState({
-						loadState: 'error',
-						optimisticPreviews: [],
-					});
-					if (onLoadEnd && typeof onLoadEnd === 'function') {
-						onLoadEnd(err);
-					}
-				}
+
+				});
 			} catch (err) {
 				if (onLoadEnd && typeof onLoadEnd === 'function') {
 					onLoadEnd(err);
@@ -373,7 +380,7 @@ export default class ImagesUploader extends Component {
 		e.preventDefault();
 
 		const filesList = e.target.files;
-		const { onLoadStart, onLoadEnd, url, optimisticPreviews, multiple } = this.props;
+		const {onLoadStart, onLoadEnd, url, optimisticPreviews, multiple} = this.props;
 
 		if (onLoadStart && typeof onLoadStart === 'function') {
 			onLoadStart();
@@ -453,12 +460,10 @@ export default class ImagesUploader extends Component {
 	}
 
 	/* eslint-disable max-len, no-undef */
-	buildPlus(
-		disabled: boolean,
-		color: string,
-		disabledColor: string,
-		plusElement?: string|React$Element<*>
-	) {
+	buildPlus(disabled: boolean,
+			  color: string,
+			  disabledColor: string,
+			  plusElement?: string | React$Element<*>) {
 		return plusElement || (
 			<svg
 				version="1.1"
@@ -476,11 +481,12 @@ export default class ImagesUploader extends Component {
 				<g>
 					<path
 						d="M500,10c13.5,0,25.1,4.8,34.7,14.4C544.2,33.9,549,45.5,549,59v392h392c13.5,0,25.1,4.8,34.7,14.4c9.6,9.6,14.4,21.1,14.4,34.7c0,13.5-4.8,25.1-14.4,34.6c-9.6,9.6-21.1,14.4-34.7,14.4H549v392c0,13.5-4.8,25.1-14.4,34.7c-9.6,9.6-21.1,14.4-34.7,14.4c-13.5,0-25.1-4.8-34.7-14.4c-9.6-9.6-14.4-21.1-14.4-34.7V549H59c-13.5,0-25.1-4.8-34.7-14.4C14.8,525.1,10,513.5,10,500c0-13.5,4.8-25.1,14.4-34.7C33.9,455.8,45.5,451,59,451h392V59c0-13.5,4.8-25.1,14.4-34.7C474.9,14.8,486.5,10,500,10L500,10z"
-						/>
+					/>
 				</g>
 			</svg>
 		);
 	}
+
 	/* eslint-enable max-len, no-undef */
 
 	@autobind
@@ -512,9 +518,9 @@ export default class ImagesUploader extends Component {
 				</span>
 			);
 		}
-		const { imagePreviewUrls, optimisticPreviews } = this.state;
+		const {imagePreviewUrls, optimisticPreviews} = this.state;
 		if ((!imagePreviewUrls || imagePreviewUrls.length < 1)
-		&& (!optimisticPreviews || optimisticPreviews.length < 1)) {
+			&& (!optimisticPreviews || optimisticPreviews.length < 1)) {
 			return (
 				<span
 					className={classNames.pseudobuttonContent || `${classNamespace}pseudobuttonContent`}
@@ -544,7 +550,7 @@ export default class ImagesUploader extends Component {
 		if (multiple !== false) {
 			return null;
 		}
-		const { imagePreviewUrls } = this.state;
+		const {imagePreviewUrls} = this.state;
 		if (!imagePreviewUrls || imagePreviewUrls.length < 1) {
 			return null;
 		}
@@ -576,15 +582,15 @@ export default class ImagesUploader extends Component {
 					d="M562.036,606l2.849-2.863a0.247,0.247,0,0,0,0-.352l-0.7-.706a0.246,0.246,0,0,0-.352,0l-2.849,2.862-2.849-2.862a0.247,0.247,0,0,0-.352,0l-0.7.706a0.249,0.249,0,0,0,0,.352L559.927,606l-2.849,2.862a0.25,0.25,0,0,0,0,.353l0.7,0.706a0.249,0.249,0,0,0,.352,0l2.849-2.862,2.849,2.862a0.249,0.249,0,0,0,.352,0l0.7-.706a0.25,0.25,0,0,0,0-.353Z"
 					/* eslint-enable max-len */
 					transform="translate(-557 -602)"
-					/>
+				/>
 			</svg>)}
 		</div>);
 	}
 
 	@autobind
 	showNotification() {
-		const { multiple, disabled } = this.props;
-		const { imagePreviewUrls } = this.state;
+		const {multiple, disabled} = this.props;
+		const {imagePreviewUrls} = this.state;
 		if (!disabled && multiple === false && imagePreviewUrls && imagePreviewUrls.length > 0) {
 			this.setState({
 				displayNotification: true,
@@ -594,7 +600,7 @@ export default class ImagesUploader extends Component {
 
 	@autobind
 	hideNotification() {
-		const { multiple } = this.props;
+		const {multiple} = this.props;
 		if (multiple === false) {
 			this.setState({
 				displayNotification: false,
@@ -603,7 +609,7 @@ export default class ImagesUploader extends Component {
 	}
 
 	render() {
-		const { imagePreviewUrls, loadState, optimisticPreviews } = this.state;
+		const {imagePreviewUrls, loadState, optimisticPreviews} = this.state;
 		const {
 			inputId,
 			disabled,
@@ -724,7 +730,7 @@ export default class ImagesUploader extends Component {
 						multiple={multiple === false ? false : 'multiple'}
 						disabled={disabled || loadState === 'loading'}
 						onChange={this.handleImageChange}
-						/>
+					/>
 				</div>
 				{multiple !== false
 					? this.buildPreviews(
