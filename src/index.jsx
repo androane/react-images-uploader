@@ -309,12 +309,7 @@ export default class ImagesUploader extends Component {
 					imageFormData.append(this.props.dataName, files[i], files[i].name);
 				}
 				var that = this;
-				axios.post(url, {
-					method: 'POST',
-					credentials: 'include',
-					body: imageFormData,
-					headers: this.props.headers
-				}).then(function (response) {
+				axios.post(url, imageFormData).then(function (response) {
 					if (response && response.status && response.status === 200) {
 						const multiple = that.props.multiple;
 						if (response instanceof Array || typeof response === 'string') {
@@ -352,7 +347,7 @@ export default class ImagesUploader extends Component {
 							status: response ? response.status : false,
 							fileName: 'ImagesUploader',
 						};
-						that.setState({
+						this.setState({
 							loadState: 'error',
 							optimisticPreviews: [],
 						});
