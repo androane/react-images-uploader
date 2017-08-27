@@ -312,12 +312,13 @@ export default class ImagesUploader extends Component {
 				axios.post(url, imageFormData).then(function (response) {
 					if (response && response.status && response.status === 200) {
 						const multiple = that.props.multiple;
-						if (response instanceof Array || typeof response === 'string') {
+						var data = response.data;
+						if (data instanceof Array || typeof data === 'string') {
 							let imagePreviewUrls = [];
 							if (multiple === false) {
-								imagePreviewUrls = response instanceof Array ? response : [response];
+								imagePreviewUrls = data instanceof Array ? data : [data];
 							} else {
-								imagePreviewUrls = that.state.imagePreviewUrls.concat(response);
+								imagePreviewUrls = that.state.imagePreviewUrls.concat(data);
 							}
 							that.setState({
 								imagePreviewUrls,
