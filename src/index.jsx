@@ -30,6 +30,7 @@ export default class ImagesUploader extends Component {
 		inputId: PropTypes.string,
 		label: PropTypes.string,
 		images: PropTypes.array,
+		maxImages: PropTypes.number,
 		disabled: PropTypes.bool,
 		onLoadStart: PropTypes.func,
 		onLoadEnd: PropTypes.func,
@@ -91,6 +92,7 @@ export default class ImagesUploader extends Component {
 		classNames: {},
 		styles: {},
 		multiple: true,
+		maxImages: 100,
 		liveUpload: true,
 		color: '#142434',
 		disabledColor: '#bec3c7',
@@ -120,8 +122,6 @@ export default class ImagesUploader extends Component {
 		this.input = null;
 	}
 
-	/* eslint-enable react/sort-comp */
-
 	componentWillMount() {
 		document.addEventListener('dragover', (event) => {
 			// prevent default to allow drop
@@ -149,7 +149,15 @@ export default class ImagesUploader extends Component {
 	@autobind
 	deleteImage(key: number) {
 		if (!this.props.disabled) {
-			const imagePreviewUrls = this.state.imagePreviewUrls;
+			let imagePreviewUrls;
+			if (this.props.liveUpload) {
+				imagePreviewUrls = this.state.imagePreviewUrls;
+			} else {
+				let filesListState = this.state.filesListState;
+				filesListState.splice(key, 1);
+				this.setState({filesListState});
+				// imagePreviewUrls = this.state.optimisticPreviews;
+			}
 			imagePreviewUrls.splice(key, 1);
 			this.setState({
 				imagePreviewUrls,
@@ -176,7 +184,6 @@ export default class ImagesUploader extends Component {
 			deleteElement,
 			plusElement,
 		} = this.props;
-
 		if ((!urls || urls.length < 1) && (!optimisticUrls || optimisticUrls.length < 1)) {
 			return (
 				<div
@@ -186,125 +193,209 @@ export default class ImagesUploader extends Component {
 			);
 		}
 		let previews = [];
-		const multiple = this.props.multiple;
-		if (urls
-			&& urls.length > 0
-			&& (!(multiple === false && optimisticUrls && optimisticUrls.length > 0))) {
-			previews = urls.map((url, key) => {
-				if (url) {
-					let imgPreviewStyle = {
-						backgroundImage: `url(${url})`,
-						borderColor: disabled ? disabledBorderColor : borderColor,
-					};
-
-					if (this.props.size) {
-						imgPreviewStyle = {
-							...imgPreviewStyle,
-							...{
-								width: this.props.size,
-								height: this.props.size,
-							},
-							...(styles.imagePreview || {}),
-						};
-					}
-
-					const deletePreviewStyle = {
-						...{
-							color: disabled ? disabledColor : color,
+		if (this.props.liveUpload) {
+			const multiple = this.props.multiple;
+			if (urls
+				&& urls.length > 0
+				&& (!(multiple === false && optimisticUrls && optimisticUrls.length > 0))) {
+				previews = urls.map((url, key) => {
+					if (url) {
+						let imgPreviewStyle = {
+							backgroundImage: `url(${url})`,
 							borderColor: disabled ? disabledBorderColor : borderColor,
-						},
-						...(styles.deletePreview || {}),
-					};
+						};
 
-					return (
-						<div
-							className={classNames.imgPreview || `${classNamespace}imgPreview`}
-							key={key}
-							style={imgPreviewStyle}>
-							{!inButton ? <div
-								className={classNames.deletePreview || `${classNamespace}deletePreview`}
-								style={deletePreviewStyle}
-								onClick={(e) => {
-									e.preventDefault();
-									this.deleteImage(key);
-								}}>
-								{deleteElement
-								|| (<svg xmlns="http://www.w3.org/2000/svg" width="7.969" height="8"
-										 viewBox="0 0 7.969 8">
-									<path
-										id="X_Icon"
-										data-name="X Icon"
-										style={{
-											fill: disabled ? disabledColor : color,
-											fillRule: 'evenodd',
-										}}
-										/* eslint-disable max-len */
-										d="M562.036,606l2.849-2.863a0.247,0.247,0,0,0,0-.352l-0.7-.706a0.246,0.246,0,0,0-.352,0l-2.849,2.862-2.849-2.862a0.247,0.247,0,0,0-.352,0l-0.7.706a0.249,0.249,0,0,0,0,.352L559.927,606l-2.849,2.862a0.25,0.25,0,0,0,0,.353l0.7,0.706a0.249,0.249,0,0,0,.352,0l2.849-2.862,2.849,2.862a0.249,0.249,0,0,0,.352,0l0.7-.706a0.25,0.25,0,0,0,0-.353Z"
-										/* eslint-enable max-len */
-										transform="translate(-557 -602)"
-									/>
-								</svg>)}
-							</div> : <div
-								className={classNames.notification || `${classNamespace}notification`}
-								style={styles.notification ? {
-									...styles.notification,
-									...{
+						if (this.props.size) {
+							imgPreviewStyle = {
+								...imgPreviewStyle,
+								...{
+									width: this.props.size,
+									height: this.props.size,
+								},
+								...(styles.imagePreview || {}),
+							};
+						}
+
+						const deletePreviewStyle = {
+							...{
+								color: disabled ? disabledColor : color,
+								borderColor: disabled ? disabledBorderColor : borderColor,
+							},
+							...(styles.deletePreview || {}),
+						};
+
+						return (
+							<div
+								className={classNames.imgPreview || `${classNamespace}imgPreview`}
+								key={key}
+								style={imgPreviewStyle}>
+								{!inButton ? <div
+									className={classNames.deletePreview || `${classNamespace}deletePreview`}
+									style={deletePreviewStyle}
+									onClick={(e) => {
+										e.preventDefault();
+										this.deleteImage(key);
+									}}>
+									{deleteElement
+									|| (<svg xmlns="http://www.w3.org/2000/svg" width="7.969" height="8"
+											 viewBox="0 0 7.969 8">
+										<path
+											id="X_Icon"
+											data-name="X Icon"
+											style={{
+												fill: disabled ? disabledColor : color,
+												fillRule: 'evenodd',
+											}}
+											/* eslint-disable max-len */
+											d="M562.036,606l2.849-2.863a0.247,0.247,0,0,0,0-.352l-0.7-.706a0.246,0.246,0,0,0-.352,0l-2.849,2.862-2.849-2.862a0.247,0.247,0,0,0-.352,0l-0.7.706a0.249,0.249,0,0,0,0,.352L559.927,606l-2.849,2.862a0.25,0.25,0,0,0,0,.353l0.7,0.706a0.249,0.249,0,0,0,.352,0l2.849-2.862,2.849,2.862a0.249,0.249,0,0,0,.352,0l0.7-.706a0.25,0.25,0,0,0,0-.353Z"
+											/* eslint-enable max-len */
+											transform="translate(-557 -602)"
+										/>
+									</svg>)}
+								</div> : <div
+									className={classNames.notification || `${classNamespace}notification`}
+									style={styles.notification ? {
+										...styles.notification,
+										...{
+											display: this.state.displayNotification ? 'block' : 'none',
+											backgroundColor: notificationBgColor,
+											color: notificationColor,
+										},
+									} : {
 										display: this.state.displayNotification ? 'block' : 'none',
 										backgroundColor: notificationBgColor,
 										color: notificationColor,
-									},
-								} : {
-									display: this.state.displayNotification ? 'block' : 'none',
-									backgroundColor: notificationBgColor,
-									color: notificationColor,
-								}}>
+									}}>
 								<span>
 									{this.props.notification
 									|| this.buildPlus(disabled, notificationColor, disabledColor, plusElement)}
 								</span>
-							</div>}
-						</div>
-					);
-				}
-				return null;
-			});
-		}
-		if (optimisticUrls && optimisticUrls.length > 0) {
-			const length = previews.length;
-			previews = previews.concat(optimisticUrls.map((url, key) => {
-				if (url) {
-					let imgPreviewStyle = {
-						backgroundImage: `url(${url})`,
-						borderColor: disabled ? disabledBorderColor : borderColor,
-					};
-
-					if (this.props.size) {
-						imgPreviewStyle = {
-							...imgPreviewStyle,
-							...{
-								width: this.props.size,
-								height: this.props.size,
-							},
-							...(styles.imgPreview || {}),
-						};
+								</div>}
+							</div>
+						);
 					}
+					return null;
+				});
+			}
+			if (optimisticUrls && optimisticUrls.length > 0) {
+				const length = previews.length;
+				previews = previews.concat(optimisticUrls.map((url, key) => {
+					if (url) {
+						let imgPreviewStyle = {
+							backgroundImage: `url(${url})`,
+							borderColor: disabled ? disabledBorderColor : borderColor,
+						};
 
-					return (
-						<div
-							className={classNames.imgPreview || `${classNamespace}imgPreview`}
-							key={length + key}
-							style={imgPreviewStyle}
-						/>
-					);
-				}
-				return null;
-			}));
+						if (this.props.size) {
+							imgPreviewStyle = {
+								...imgPreviewStyle,
+								...{
+									width: this.props.size,
+									height: this.props.size,
+								},
+								...(styles.imgPreview || {}),
+							};
+						}
+
+						return (
+							<div
+								className={classNames.imgPreview || `${classNamespace}imgPreview`}
+								key={length + key}
+								style={imgPreviewStyle}
+							/>
+						);
+					}
+					return null;
+				}));
+			}
+		}
+		else {
+			if (optimisticUrls
+				&& optimisticUrls.length > 0) {
+				previews = optimisticUrls.map((url, key) => {
+					if (url) {
+						let imgPreviewStyle = {
+							backgroundImage: `url(${url})`,
+							borderColor: disabled ? disabledBorderColor : borderColor,
+						};
+
+						if (this.props.size) {
+							imgPreviewStyle = {
+								...imgPreviewStyle,
+								...{
+									width: this.props.size,
+									height: this.props.size,
+								},
+								...(styles.imagePreview || {}),
+							};
+						}
+
+						const deletePreviewStyle = {
+							...{
+								color: disabled ? disabledColor : color,
+								borderColor: disabled ? disabledBorderColor : borderColor,
+							},
+							...(styles.deletePreview || {}),
+						};
+						return (
+							<div
+								className={classNames.imgPreview || `${classNamespace}imgPreview`}
+								key={key}
+								style={imgPreviewStyle}>
+								{!inButton ? <div
+									className={classNames.deletePreview || `${classNamespace}deletePreview`}
+									style={deletePreviewStyle}
+									onClick={(e) => {
+										e.preventDefault();
+										this.deleteImage(key);
+									}}>
+									{deleteElement
+									|| (<svg xmlns="http://www.w3.org/2000/svg" width="7.969" height="8"
+											 viewBox="0 0 7.969 8">
+										<path
+											id="X_Icon"
+											data-name="X Icon"
+											style={{
+												fill: disabled ? disabledColor : color,
+												fillRule: 'evenodd',
+											}}
+											/* eslint-disable max-len */
+											d="M562.036,606l2.849-2.863a0.247,0.247,0,0,0,0-.352l-0.7-.706a0.246,0.246,0,0,0-.352,0l-2.849,2.862-2.849-2.862a0.247,0.247,0,0,0-.352,0l-0.7.706a0.249,0.249,0,0,0,0,.352L559.927,606l-2.849,2.862a0.25,0.25,0,0,0,0,.353l0.7,0.706a0.249,0.249,0,0,0,.352,0l2.849-2.862,2.849,2.862a0.249,0.249,0,0,0,.352,0l0.7-.706a0.25,0.25,0,0,0,0-.353Z"
+											/* eslint-enable max-len */
+											transform="translate(-557 -602)"
+										/>
+									</svg>)}
+								</div> : <div
+									className={classNames.notification || `${classNamespace}notification`}
+									style={styles.notification ? {
+										...styles.notification,
+										...{
+											display: this.state.displayNotification ? 'block' : 'none',
+											backgroundColor: notificationBgColor,
+											color: notificationColor,
+										},
+									} : {
+										display: this.state.displayNotification ? 'block' : 'none',
+										backgroundColor: notificationBgColor,
+										color: notificationColor,
+									}}>
+								<span>
+									{this.props.notification
+									|| this.buildPlus(disabled, notificationColor, disabledColor, plusElement)}
+								</span>
+								</div>}
+							</div>
+						);
+					}
+					return null;
+				});
+			}
 		}
 		return previews;
 	}
 
 	@autobind
-	async loadImages(files: FileList, url: string, onLoadEnd?: Function): any {
+	async loadImages(url: string, files?: FileList, onLoadEnd?: Function): any {
 		if (url) {
 			try {
 				const imageFormData = new FormData();
@@ -385,10 +476,12 @@ export default class ImagesUploader extends Component {
 	@autobind
 	handleImageChange(e: Object) {
 		e.preventDefault();
-
-		const filesList = e.target.files;
-		const imagePreviewUrls = this.state.filesListState.concat(...filesList);
-		this.setState({filesListState: imagePreviewUrls});
+		var fileList = e.target.files;
+		debugger;
+		var filesList = fileList.slice(0, this.props.maxImages - this.state.filesListState.length)
+		if (!this.props.liveUpload) {
+			this.setState({filesListState: this.state.filesListState.concat(...filesList)});
+		}
 		const {onLoadStart, onLoadEnd, url, optimisticPreviews, multiple} = this.props;
 
 		if (onLoadStart && typeof onLoadStart === 'function') {
@@ -451,12 +544,12 @@ export default class ImagesUploader extends Component {
 			}
 		}
 
-		if (url && this.props.liveUpload) {
-			this.loadImages(filesList, url, onLoadEnd);
-		}
-		if (!this.props.liveUpload) {
+		if (this.props.liveUpload) {
+			if (url) {
+				this.loadImages(url, filesList, onLoadEnd);
+			}
+		} else {
 			this.setState({
-				imagePreviewUrls,
 				loadState: 'success',
 			});
 		}
@@ -479,6 +572,12 @@ export default class ImagesUploader extends Component {
 			  color: string,
 			  disabledColor: string,
 			  plusElement?: string | React$Element<*>) {
+		if(this.props.liveUpload && this.state.imagePreviewUrls && this.state.imagePreviewUrls.length >= this.props.maxImages) {
+			return (<div></div>)
+		}
+		if(!this.props.liveUpload && this.state.filesListState.length >= this.props.maxImages) {
+			return (<div></div>)
+		}
 		return plusElement || (
 			<svg
 				version="1.1"
