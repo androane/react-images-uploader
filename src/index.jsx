@@ -36,6 +36,7 @@ export default class ImagesUploader extends Component {
 		deleteImage: PropTypes.func,
 		optimisticPreviews: PropTypes.bool,
 		multiple: PropTypes.bool,
+		liveUpload: PropTypes.bool,
 		image: PropTypes.string,
 		notification: PropTypes.string,
 		max: PropTypes.number,
@@ -61,6 +62,7 @@ export default class ImagesUploader extends Component {
 			dropzone: PropTypes.string,
 			pseudobutton: PropTypes.string,
 			pseudobuttonContent: PropTypes.string,
+			uploadButton: PropTypes.string,
 			imgPreview: PropTypes.string,
 			fileInput: PropTypes.string,
 			emptyPreview: PropTypes.string,
@@ -89,6 +91,7 @@ export default class ImagesUploader extends Component {
 		classNames: {},
 		styles: {},
 		multiple: true,
+		liveUpload: true,
 		color: '#142434',
 		disabledColor: '#bec3c7',
 		borderColor: '#a9bac8',
@@ -110,6 +113,7 @@ export default class ImagesUploader extends Component {
 		this.state = {
 			imagePreviewUrls,
 			loadState: '',
+			filesListState: [],
 			optimisticPreviews: [],
 			displayNotification: false,
 		};
@@ -305,22 +309,31 @@ export default class ImagesUploader extends Component {
 			try {
 				const imageFormData = new FormData();
 
-				for (let i = 0; i < files.length; i++) {
-					imageFormData.append(this.props.dataName, files[i], files[i].name);
+				if (this.props.liveUpload) {
+					for (let i = 0; i < files.length; i++) {
+						imageFormData.append(this.props.dataName,
+							files[i],
+							files[i].name);
+					}
+				} else {
+					for (let i = 0; i < this.state.filesListState.length; i++) {
+						imageFormData.append(this.props.dataName,
+							this.state.filesListState[i],
+							this.state.filesListState[i].name);
+					}
 				}
-				var that = this;
-				axios.post(url, imageFormData).then(function (response) {
+				axios.post(url, imageFormData).then((response) => {
 					if (response && response.status && response.status === 200) {
-						const multiple = that.props.multiple;
+						const multiple = this.props.multiple;
 						var data = response.data;
 						if (data instanceof Array || typeof data === 'string') {
 							let imagePreviewUrls = [];
 							if (multiple === false) {
 								imagePreviewUrls = data instanceof Array ? data : [data];
 							} else {
-								imagePreviewUrls = that.state.imagePreviewUrls.concat(data);
+								imagePreviewUrls = this.state.imagePreviewUrls.concat(data);
 							}
-							that.setState({
+							this.setState({
 								imagePreviewUrls,
 								optimisticPreviews: [],
 								loadState: 'success',
@@ -334,7 +347,7 @@ export default class ImagesUploader extends Component {
 								response,
 								fileName: 'ImagesUploader',
 							};
-							that.setState({
+							this.setState({
 								loadState: 'error',
 								optimisticPreviews: [],
 							});
@@ -356,7 +369,6 @@ export default class ImagesUploader extends Component {
 							onLoadEnd(err);
 						}
 					}
-
 				});
 			} catch (err) {
 				if (onLoadEnd && typeof onLoadEnd === 'function') {
@@ -375,6 +387,8 @@ export default class ImagesUploader extends Component {
 		e.preventDefault();
 
 		const filesList = e.target.files;
+		const imagePreviewUrls = this.state.filesListState.concat(...filesList);
+		this.setState({filesListState: imagePreviewUrls});
 		const {onLoadStart, onLoadEnd, url, optimisticPreviews, multiple} = this.props;
 
 		if (onLoadStart && typeof onLoadStart === 'function') {
@@ -437,8 +451,14 @@ export default class ImagesUploader extends Component {
 			}
 		}
 
-		if (url) {
+		if (url && this.props.liveUpload) {
 			this.loadImages(filesList, url, onLoadEnd);
+		}
+		if (!this.props.liveUpload) {
+			this.setState({
+				imagePreviewUrls,
+				loadState: 'success',
+			});
 		}
 	}
 
