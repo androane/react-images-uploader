@@ -155,12 +155,15 @@ export default class ImagesUploader extends Component {
 			} else {
 				let filesListState = this.state.filesListState;
 				filesListState.splice(key, 1);
-				this.setState({filesListState});
-				// imagePreviewUrls = this.state.optimisticPreviews;
+				this.setState({
+					filesListState,
+				});
+				imagePreviewUrls = this.state.optimisticPreviews;
 			}
 			imagePreviewUrls.splice(key, 1);
 			this.setState({
 				imagePreviewUrls,
+				loadState: '',
 			});
 			if (this.props.deleteImage && typeof this.props.deleteImage === 'function') {
 				this.props.deleteImage(key);
@@ -476,11 +479,19 @@ export default class ImagesUploader extends Component {
 	@autobind
 	handleImageChange(e: Object) {
 		e.preventDefault();
-		var fileList = e.target.files;
-		debugger;
-		var filesList = fileList.slice(0, this.props.maxImages - this.state.filesListState.length)
+		var filesList;
 		if (!this.props.liveUpload) {
+			filesList = []
+			for(let i = 0; i < Math.min(this.props.maxImages - this.state.filesListState.length, e.target.files.length); i++) {
+				filesList[i] = e.target.files[i];
+			}
 			this.setState({filesListState: this.state.filesListState.concat(...filesList)});
+		}
+		else {
+			filesList = []
+			for(let i = 0; i < Math.min(this.props.maxImages - this.state.imagePreviewUrls.length, e.target.files.length); i++) {
+				filesList[i] = e.target.files[i];
+			}
 		}
 		const {onLoadStart, onLoadEnd, url, optimisticPreviews, multiple} = this.props;
 
@@ -788,6 +799,8 @@ export default class ImagesUploader extends Component {
 					htmlFor={inputId || 'filesInput'}>
 					{label || null}
 				</label>
+				{((!this.props.liveUpload && this.state.filesListState.length < this.props.maxImages) ||
+					(this.props.liveUpload && this.state.imagePreviewUrls.length < this.props.maxImages)) ?
 				<div
 					className={classNames.filesInputContainer || `${classNamespace}filesInputContainer`}
 					style={styles.filesInputContainer}>
@@ -845,7 +858,7 @@ export default class ImagesUploader extends Component {
 						disabled={disabled || loadState === 'loading'}
 						onChange={this.handleImageChange}
 					/>
-				</div>
+				</div> : null }
 				{multiple !== false
 					? this.buildPreviews(
 						imagePreviewUrls,
