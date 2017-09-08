@@ -416,7 +416,7 @@ export default class ImagesUploader extends Component {
 							this.state.filesListState[i].name);
 					}
 				}
-				axios.post(url, imageFormData).then((response) => {
+				return axios.post(url, imageFormData).then((response) => {
 					if (response && response.status && response.status === 200) {
 						const multiple = this.props.multiple;
 						var data = response.data;
