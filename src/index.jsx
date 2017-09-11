@@ -463,6 +463,7 @@ export default class ImagesUploader extends Component {
 							onLoadEnd(err);
 						}
 					}
+					return response
 				});
 			} catch (err) {
 				if (onLoadEnd && typeof onLoadEnd === 'function') {
