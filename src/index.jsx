@@ -394,7 +394,7 @@ export default class ImagesUploader extends Component {
 				});
 			}
 		}
-		return previews;
+		return (<div className={`${classNamespace}imgPreviewWrapper`}>{previews}</div>);
 	}
 
 	@autobind
