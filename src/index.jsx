@@ -394,7 +394,7 @@ export default class ImagesUploader extends Component {
 				});
 			}
 		}
-		return (<div className={`${classNamespace}imgPreviewWrapper`}>{previews}</div>);
+		return previews;
 	}
 
 	@autobind
@@ -862,12 +862,12 @@ export default class ImagesUploader extends Component {
 						disabled={disabled || loadState === 'loading'}
 						onChange={this.handleImageChange}
 					/>
-				</div> : null }
-				{multiple !== false
+					{multiple !== false
 					? this.buildPreviews(
 						imagePreviewUrls,
 						this.props.optimisticPreviews && optimisticPreviews)
 					: null}
+				</div> : null }
 			</div>
 		);
 	}
