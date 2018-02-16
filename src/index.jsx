@@ -587,10 +587,10 @@ export default class ImagesUploader extends Component {
 			  color: string,
 			  disabledColor: string,
 			  plusElement?: string | React$Element<*>) {
-		if(this.props.liveUpload && this.state.imagePreviewUrls && this.state.imagePreviewUrls.length > this.props.maxImages) {
+		if(this.props.liveUpload && this.state.imagePreviewUrls && this.state.imagePreviewUrls.length >= this.props.maxImages) {
 			return (<div></div>)
 		}
-		if(!this.props.liveUpload && this.state.filesListState.length > this.props.maxImages) {
+		if(!this.props.liveUpload && this.state.filesListState.length >= this.props.maxImages) {
 			return (<div></div>)
 		}
 		return plusElement || (
@@ -803,71 +803,71 @@ export default class ImagesUploader extends Component {
 					htmlFor={inputId || 'filesInput'}>
 					{label || null}
 				</label>
-				{((!this.props.liveUpload && this.state.filesListState.length <= this.props.maxImages) ||
-					(this.props.liveUpload && this.state.imagePreviewUrls.length <= this.props.maxImages)) ?
-				<div
-					className={classNames.filesInputContainer || `${classNamespace}filesInputContainer`}
-					style={styles.filesInputContainer}>
-					<div
-						className={classNames.loadContainer || `${classNamespace}loadContainer`}
-						style={loadContainerStyle}>
-						{this.buildClose()}
-						<Dropzone
-							onDrop={this.handleFileDrop}
-							disableClick
+				<div className={classNames.filesInputContainer || `${classNamespace}filesInputContainer`} style={styles.filesInputContainer}>
+					{((!this.props.liveUpload && this.state.filesListState.length < this.props.maxImages) ||
+						(this.props.liveUpload && this.state.imagePreviewUrls.length < this.props.maxImages)) ?
+					[
+						<div
+							className={classNames.loadContainer || `${classNamespace}loadContainer`}
+							style={loadContainerStyle}>
+							{this.buildClose()}
+							<Dropzone
+								onDrop={this.handleFileDrop}
+								disableClick
+								accept="image/*"
+								className={classNames.dropzone || `${classNamespace}dropzone`}
+								style={dropzoneStyle}
+								multiple={
+									/* eslint-disable no-unneeded-ternary */
+									multiple === false ? false : true
+									/* eslint-enable no-unneeded-ternary */
+								}>
+								<Button
+									state={loadState}
+									type="button"
+									classNamespace={`${classNamespace}button-`}
+									className={classNames.pseudobutton || `${classNamespace}pseudobutton`}
+									style={pseudobuttonStyle}
+									onClick={(e) => {
+										e.preventDefault();
+										if (this.input) {
+											this.input.click();
+										}
+									}}
+									onMouseOver={this.showNotification}
+									onMouseLeave={this.hideNotification}
+									onDragOver={this.showNotification}
+									onDragLeave={this.hideNotification}>
+									{this.buildButtonContent()}
+								</Button>
+							</Dropzone>
+						</div>,
+						<input
+							name={inputId || 'filesInput'}
+							id={inputId || 'filesInput'}
+							className={classNames.fileInput || `${classNamespace}fileInput`}
+							style={{
+								...{
+									display: 'none',
+								},
+								...(styles.fileInput || {}),
+							}}
+							ref={(ref) => {
+								this.input = ref;
+							}}
+							type="file"
 							accept="image/*"
-							className={classNames.dropzone || `${classNamespace}dropzone`}
-							style={dropzoneStyle}
-							multiple={
-								/* eslint-disable no-unneeded-ternary */
-								multiple === false ? false : true
-								/* eslint-enable no-unneeded-ternary */
-							}>
-							<Button
-								state={loadState}
-								type="button"
-								classNamespace={`${classNamespace}button-`}
-								className={classNames.pseudobutton || `${classNamespace}pseudobutton`}
-								style={pseudobuttonStyle}
-								onClick={(e) => {
-									e.preventDefault();
-									if (this.input) {
-										this.input.click();
-									}
-								}}
-								onMouseOver={this.showNotification}
-								onMouseLeave={this.hideNotification}
-								onDragOver={this.showNotification}
-								onDragLeave={this.hideNotification}>
-								{this.buildButtonContent()}
-							</Button>
-						</Dropzone>
-					</div>
-					<input
-						name={inputId || 'filesInput'}
-						id={inputId || 'filesInput'}
-						className={classNames.fileInput || `${classNamespace}fileInput`}
-						style={{
-							...{
-								display: 'none',
-							},
-							...(styles.fileInput || {}),
-						}}
-						ref={(ref) => {
-							this.input = ref;
-						}}
-						type="file"
-						accept="image/*"
-						multiple={multiple === false ? false : 'multiple'}
-						disabled={disabled || loadState === 'loading'}
-						onChange={this.handleImageChange}
-					/>
+							multiple={multiple === false ? false : 'multiple'}
+							disabled={disabled || loadState === 'loading'}
+							onChange={this.handleImageChange}
+					/>] : null}
+
 					{multiple !== false
 					? this.buildPreviews(
 						imagePreviewUrls,
 						this.props.optimisticPreviews && optimisticPreviews)
 					: null}
-				</div> : null }
+				</div>
 			</div>
 		);
 	}
