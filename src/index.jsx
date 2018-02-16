@@ -807,7 +807,8 @@ export default class ImagesUploader extends Component {
 					{((!this.props.liveUpload && this.state.filesListState.length < this.props.maxImages) ||
 						(this.props.liveUpload && this.state.imagePreviewUrls.length < this.props.maxImages)) ?
 					[
-						<div
+						<div 
+							key={1}
 							className={classNames.loadContainer || `${classNamespace}loadContainer`}
 							style={loadContainerStyle}>
 							{this.buildClose()}
@@ -843,6 +844,7 @@ export default class ImagesUploader extends Component {
 							</Dropzone>
 						</div>,
 						<input
+							key={2}
 							name={inputId || 'filesInput'}
 							id={inputId || 'filesInput'}
 							className={classNames.fileInput || `${classNamespace}fileInput`}
