@@ -803,8 +803,8 @@ export default class ImagesUploader extends Component {
 					htmlFor={inputId || 'filesInput'}>
 					{label || null}
 				</label>
-				{((!this.props.liveUpload && this.state.filesListState.length < this.props.maxImages) ||
-					(this.props.liveUpload && this.state.imagePreviewUrls.length < this.props.maxImages)) ?
+				{((!this.props.liveUpload && this.state.filesListState.length <= this.props.maxImages) ||
+					(this.props.liveUpload && this.state.imagePreviewUrls.length <= this.props.maxImages)) ?
 				<div
 					className={classNames.filesInputContainer || `${classNamespace}filesInputContainer`}
 					style={styles.filesInputContainer}>
