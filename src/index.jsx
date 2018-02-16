@@ -587,10 +587,10 @@ export default class ImagesUploader extends Component {
 			  color: string,
 			  disabledColor: string,
 			  plusElement?: string | React$Element<*>) {
-		if(this.props.liveUpload && this.state.imagePreviewUrls && this.state.imagePreviewUrls.length >= this.props.maxImages) {
+		if(this.props.liveUpload && this.state.imagePreviewUrls && this.state.imagePreviewUrls.length > this.props.maxImages) {
 			return (<div></div>)
 		}
-		if(!this.props.liveUpload && this.state.filesListState.length >= this.props.maxImages) {
+		if(!this.props.liveUpload && this.state.filesListState.length > this.props.maxImages) {
 			return (<div></div>)
 		}
 		return plusElement || (
